@@ -9,6 +9,8 @@ import admin from 'firebase-admin';
 import { v4 as uuidv4 } from 'uuid';
 import { stripe } from '@/lib/stripe';
 import { headers } from "next/headers";
+import { getAuth } from "firebase-admin/auth";
+import { revalidatePath } from "next/cache";
 
 
 export async function getConciergeResponseAction(
@@ -145,6 +147,113 @@ export async function updateAvatarAction(input: UpdateAvatarInput): Promise<{ su
         return { success: true };
     } catch (error) {
         console.error("Error updating avatar:", error);
+        return { success: false };
+    }
+}
+
+// ---- Admin Actions ----
+
+async function verifyAdminAndOwner(userId: string, restaurantId: string): Promise<void> {
+    if (!userId) {
+        throw new Error("Authentication required.");
+    }
+    const user = await getAuth().getUser(userId);
+    if (!user.customClaims?.isAdmin) {
+        throw new Error("Authorization failed: User is not an admin.");
+    }
+    
+    const restaurantRef = adminDb.collection('restaurants').doc(restaurantId);
+    const restaurantDoc = await restaurantRef.get();
+    if (!restaurantDoc.exists || restaurantDoc.data()?.ownerId !== userId) {
+        throw new Error("Authorization failed: User does not own this restaurant.");
+    }
+}
+
+interface UpdateRestaurantInput {
+    userId: string;
+    restaurantId: string;
+    name: string;
+    cuisine: string;
+}
+
+export async function updateRestaurantAction(input: UpdateRestaurantInput): Promise<{ success: boolean }> {
+    const { userId, restaurantId, name, cuisine } = input;
+    try {
+        await verifyAdminAndOwner(userId, restaurantId);
+        
+        await adminDb.collection('restaurants').doc(restaurantId).update({ name, cuisine });
+
+        revalidatePath(`/admin/restaurant/${restaurantId}`);
+        revalidatePath(`/dashboard`);
+        return { success: true };
+    } catch (error: any) {
+        console.error("Error updating restaurant:", error.message);
+        return { success: false };
+    }
+}
+
+interface MealInput {
+    userId: string;
+    restaurantId: string;
+    name: string;
+    price: string;
+    imageUrl: string;
+}
+
+export async function addMealAction(input: MealInput): Promise<{ success: boolean }> {
+    const { userId, restaurantId, ...mealData } = input;
+    try {
+        await verifyAdminAndOwner(userId, restaurantId);
+
+        const mealsCollectionRef = adminDb.collection('restaurants').doc(restaurantId).collection('meals');
+        await mealsCollectionRef.add(mealData);
+
+        revalidatePath(`/admin/restaurant/${restaurantId}`);
+        return { success: true };
+    } catch (error: any) {
+        console.error("Error adding meal:", error.message);
+        return { success: false };
+    }
+}
+
+interface UpdateMealInput extends MealInput {
+    mealId: string;
+}
+
+export async function updateMealAction(input: UpdateMealInput): Promise<{ success: boolean }> {
+    const { userId, restaurantId, mealId, ...mealData } = input;
+    try {
+        await verifyAdminAndOwner(userId, restaurantId);
+
+        const mealRef = adminDb.collection('restaurants').doc(restaurantId).collection('meals').doc(mealId);
+        await mealRef.update(mealData);
+
+        revalidatePath(`/admin/restaurant/${restaurantId}`);
+        return { success: true };
+    } catch (error: any) {
+        console.error("Error updating meal:", error.message);
+        return { success: false };
+    }
+}
+
+interface DeleteMealInput {
+    userId: string;
+    restaurantId: string;
+    mealId: string;
+}
+
+export async function deleteMealAction(input: DeleteMealInput): Promise<{ success: boolean }> {
+    const { userId, restaurantId, mealId } = input;
+    try {
+        await verifyAdminAndOwner(userId, restaurantId);
+
+        const mealRef = adminDb.collection('restaurants').doc(restaurantId).collection('meals').doc(mealId);
+        await mealRef.delete();
+
+        revalidatePath(`/admin/restaurant/${restaurantId}`);
+        return { success: true };
+    } catch (error: any) {
+        console.error("Error deleting meal:", error.message);
         return { success: false };
     }
 }

@@ -54,11 +54,13 @@ export default function SignupPage() {
         displayName: data.username,
         email: data.email,
         createdAt: new Date(),
+        isAdmin: false, // Default to not an admin
         loyaltyPoints: 0,
         photoURL: null,
         addresses: [],
         favoriteRestaurants: [],
         favoriteMeals: [],
+        ownedRestaurants: [],
       });
 
       toast({ title: "Account Created", description: "Welcome to CyberFeast!" });

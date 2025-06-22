@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -21,6 +22,7 @@ import {
   LogOut,
   Heart,
   ShoppingCart as ShoppingCartIcon,
+  Shield,
 } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -30,6 +32,7 @@ import { auth } from "@/lib/firebase";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { Separator } from "./ui/separator";
 
 export function AppSidebar() {
   const pathname = usePathname();
@@ -76,6 +79,7 @@ export function AppSidebar() {
     if (mealDataString) {
       const mealData = JSON.parse(mealDataString);
       addItem({
+        id: mealData.id,
         name: mealData.name,
         price: parseFloat(mealData.price),
         imageUrl: mealData.imageUrl,
@@ -95,7 +99,7 @@ export function AppSidebar() {
              <SidebarMenuItem key={item.href}>
               <SidebarMenuButton
                 asChild
-                isActive={pathname.startsWith(item.href)}
+                isActive={pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href))}
                 tooltip={item.label}
               >
                 <Link href={item.href}>
@@ -105,6 +109,23 @@ export function AppSidebar() {
               </SidebarMenuButton>
             </SidebarMenuItem>
           ))}
+          {userData?.isAdmin && (
+             <>
+                <Separator className="my-2" />
+                 <SidebarMenuItem>
+                    <SidebarMenuButton
+                        asChild
+                        isActive={pathname.startsWith('/admin')}
+                        tooltip="Admin Dashboard"
+                    >
+                        <Link href="/admin">
+                            <Shield />
+                            <span>Admin</span>
+                        </Link>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+             </>
+          )}
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter 

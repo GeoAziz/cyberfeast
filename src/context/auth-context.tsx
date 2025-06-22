@@ -2,7 +2,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, ReactNode, Dispatch, SetStateAction } from 'react';
-import { onAuthStateChanged, User } from 'firebase/auth';
+import { onIdTokenChanged, User } from 'firebase/auth';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { Logo } from '@/components/logo';
@@ -20,9 +20,11 @@ interface UserData {
   photoURL: string | null;
   createdAt: any;
   loyaltyPoints: number;
+  isAdmin?: boolean;
   favoriteRestaurants?: string[];
   favoriteMeals?: string[];
   addresses?: Address[];
+  ownedRestaurants?: string[];
 }
 
 interface AuthContextType {
@@ -45,9 +47,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+    const unsubscribeAuth = onIdTokenChanged(auth, async (user) => {
       setLoading(true);
       if (user) {
+        // Post the token to the API route
+        const token = await user.getIdToken();
+        await fetch('/api/auth/session', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
         setUser(user);
         const userDocRef = doc(db, 'users', user.uid);
         const unsubscribeFirestore = onSnapshot(userDocRef, (doc) => {
@@ -60,6 +69,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         });
         return () => unsubscribeFirestore();
       } else {
+        await fetch('/api/auth/session', { method: 'DELETE' });
         setUser(null);
         setUserData(null);
         setLoading(false);
