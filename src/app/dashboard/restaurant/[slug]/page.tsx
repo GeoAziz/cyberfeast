@@ -1,4 +1,7 @@
+
 // src/app/dashboard/restaurant/[slug]/page.tsx
+'use client';
+
 import Image from "next/image";
 import { Heart, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -7,47 +10,33 @@ import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MealCard } from "@/components/meal-card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { adminDb } from "@/lib/firebase-server";
-import { notFound } from "next/navigation";
+import { notFound, useRouter } from "next/navigation";
+import { useAuth } from "@/context/auth-context";
+import { toggleFavoriteAction } from "@/app/actions";
+import { useToast } from "@/hooks/use-toast";
+import { useEffect, useState, useTransition } from "react";
+import { doc, getDoc, collection, getDocs, query, where } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 
-
-async function getRestaurantData(slug: string) {
-    const restaurantsRef = adminDb.collection('restaurants').where('slug', '==', slug).limit(1);
-    const restaurantSnapshot = await restaurantsRef.get();
-
-    if (restaurantSnapshot.empty) {
-        notFound();
-    }
-
-    const restaurantDoc = restaurantSnapshot.docs[0];
-    const restaurantDetails = { id: restaurantDoc.id, ...restaurantDoc.data() };
-
-    const mealsRef = adminDb.collection(`restaurants/${restaurantDoc.id}/meals`);
-    const mealsSnapshot = await mealsRef.get();
-    const menuItems = mealsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-    // For now, reviews are hardcoded
-    // In a real app, you would fetch these from a 'reviews' subcollection
-    const reviews = [
-      {
-        id: 1,
-        author: "SynthWaveSurfer",
-        avatarUrl: "https://placehold.co/40x40.png",
-        rating: 5,
-        comment: "Absolutely transcendent! The Stardust Sushi felt like tasting the cosmos. The holographic fish swimming by the table was a nice touch. A must-visit!",
-      },
-      {
-        id: 2,
-        author: "GlitchGourmet",
-        avatarUrl: "https://placehold.co/40x40.png",
-        rating: 4,
-        comment: "Solid spot. The Galactic Gyoza was perfectly crisp. The service was a bit slow, probably a server bot running on old firmware. Still, I'd come back.",
-      },
-    ];
-
-    return { restaurantDetails, menuItems, reviews };
-}
-
+// In a real app, this would be fetched from Firestore
+const mockReviews = [
+  {
+    id: 1,
+    author: "SynthWaveSurfer",
+    avatarUrl: "https://placehold.co/40x40.png",
+    rating: 5,
+    comment: "Absolutely transcendent! The Stardust Sushi felt like tasting the cosmos. The holographic fish swimming by the table was a nice touch. A must-visit!",
+  },
+  {
+    id: 2,
+    author: "GlitchGourmet",
+    avatarUrl: "https://placehold.co/40x40.png",
+    rating: 4,
+    comment: "Solid spot. The Galactic Gyoza was perfectly crisp. The service was a bit slow, probably a server bot running on old firmware. Still, I'd come back.",
+  },
+];
 
 const renderStars = (rating: number) => {
   return (
@@ -62,10 +51,92 @@ const renderStars = (rating: number) => {
   );
 };
 
+export default function RestaurantDetailsPage({ params }: { params: { slug: string } }) {
+  const router = useRouter();
+  const { user, userData, setUserData, loading: authLoading } = useAuth();
+  const { toast } = useToast();
+  const [isPending, startTransition] = useTransition();
+  
+  const [restaurantDetails, setRestaurantDetails] = useState<any>(null);
+  const [menuItems, setMenuItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-export default async function RestaurantDetailsPage({ params }: { params: { slug: string } }) {
-  const { restaurantDetails, menuItems, reviews } = await getRestaurantData(params.slug);
+  useEffect(() => {
+    const getRestaurantData = async (slug: string) => {
+      setLoading(true);
+      try {
+        const restaurantsRef = query(collection(db, 'restaurants'), where('slug', '==', slug), limit(1));
+        const restaurantSnapshot = await getDocs(restaurantsRef);
 
+        if (restaurantSnapshot.empty) {
+          notFound();
+          return;
+        }
+
+        const restaurantDoc = restaurantSnapshot.docs[0];
+        const details = { id: restaurantDoc.id, ...restaurantDoc.data() };
+        setRestaurantDetails(details);
+
+        const mealsRef = collection(db, `restaurants/${restaurantDoc.id}/meals`);
+        const mealsSnapshot = await getDocs(mealsRef);
+        const menu = mealsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setMenuItems(menu);
+
+      } catch (err) {
+        console.error(err);
+        notFound();
+      } finally {
+        setLoading(false);
+      }
+    }
+    getRestaurantData(params.slug);
+  }, [params.slug]);
+  
+  const isFavorited = userData?.favoriteRestaurants?.includes(restaurantDetails?.id);
+
+  const handleToggleFavorite = () => {
+    if (!user) {
+      toast({ variant: 'destructive', title: 'Please login to add favorites.' });
+      router.push('/login');
+      return;
+    }
+    startTransition(async () => {
+      await toggleFavoriteAction({
+        userId: user.uid,
+        itemId: restaurantDetails.id,
+        itemType: 'restaurant',
+        isFavorited: !!isFavorited,
+      });
+
+      // Optimistic update
+      const newFavorites = isFavorited
+        ? userData.favoriteRestaurants.filter((id: string) => id !== restaurantDetails.id)
+        : [...(userData.favoriteRestaurants || []), restaurantDetails.id];
+      
+      setUserData({ ...userData, favoriteRestaurants: newFavorites });
+      
+      toast({
+        title: isFavorited ? 'Removed from favorites' : 'Added to favorites',
+        description: `${restaurantDetails.name} has been ${isFavorited ? 'removed from' : 'added to'} your favorites.`,
+      });
+    });
+  };
+
+  if (loading || authLoading) {
+    // Basic skeleton loader
+    return <div className="space-y-8">
+      <Skeleton className="h-80 w-full" />
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+         <Skeleton className="h-12 w-1/3" />
+         <Skeleton className="h-8 w-1/4 mt-4" />
+      </div>
+    </div>;
+  }
+
+  if (!restaurantDetails) {
+    return notFound();
+  }
+  
   return (
     <div className="space-y-8">
       <header className="relative -mx-4 sm:-mx-6 lg:-mx-8 -mt-4 sm:-mt-6 lg:-mt-8">
@@ -88,13 +159,15 @@ export default async function RestaurantDetailsPage({ params }: { params: { slug
                         <div className="flex items-center gap-2 mt-2">
                             <Badge variant="secondary">{restaurantDetails.rating.toFixed(1)}</Badge>
                             {renderStars(Math.round(restaurantDetails.rating))}
-                            <span className="text-sm text-muted-foreground">({reviews.length} reviews)</span>
+                            <span className="text-sm text-muted-foreground">({mockReviews.length} reviews)</span>
                         </div>
                     </div>
-                    <Button variant="outline" className="shrink-0 gap-2">
-                        <Heart className={`h-5 w-5 ${false ? 'text-accent fill-accent' : ''}`} />
-                        <span>Favorite</span>
-                    </Button>
+                    {user && (
+                      <Button variant="outline" className="shrink-0 gap-2" onClick={handleToggleFavorite} disabled={isPending}>
+                          <Heart className={cn(`h-5 w-5`, isFavorited && 'text-accent fill-accent')} />
+                          <span>{isFavorited ? 'Favorited' : 'Favorite'}</span>
+                      </Button>
+                    )}
                 </div>
             </Card>
         </div>
@@ -115,7 +188,7 @@ export default async function RestaurantDetailsPage({ params }: { params: { slug
           </TabsContent>
           <TabsContent value="reviews" className="mt-6">
             <div className="space-y-6">
-              {reviews.map((review) => (
+              {mockReviews.map((review) => (
                 <Card key={review.id} className="p-6">
                   <div className="flex items-start gap-4">
                     <Avatar>

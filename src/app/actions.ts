@@ -33,12 +33,12 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<{ orderI
         items,
         total,
         status: 'pending',
-        createdAt: new Date(),
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
     };
 
     const orderRef = await adminDb.collection('orders').add(orderData);
 
-    // Optional: Update user's loyalty points
+    // Update user's loyalty points
     const userRef = adminDb.collection('users').doc(userId);
     const loyaltyPointsToAdd = Math.floor(total);
     await userRef.update({
@@ -46,4 +46,39 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<{ orderI
     });
 
     return { orderId: orderRef.id };
+}
+
+interface ToggleFavoriteInput {
+    userId: string;
+    itemId: string;
+    itemType: 'restaurant' | 'meal';
+    isFavorited: boolean;
+}
+
+export async function toggleFavoriteAction(input: ToggleFavoriteInput): Promise<{ success: boolean }> {
+    const { userId, itemId, itemType, isFavorited } = input;
+    if (!userId || !itemId || !itemType) {
+        throw new Error("User ID, Item ID, and Item Type are required.");
+    }
+
+    const userRef = adminDb.collection('users').doc(userId);
+    const fieldToUpdate = itemType === 'restaurant' ? 'favoriteRestaurants' : 'favoriteMeals';
+    
+    try {
+        if (isFavorited) {
+            // Remove from favorites
+            await userRef.update({
+                [fieldToUpdate]: admin.firestore.FieldValue.arrayRemove(itemId)
+            });
+        } else {
+            // Add to favorites
+            await userRef.update({
+                [fieldToUpdate]: admin.firestore.FieldValue.arrayUnion(itemId)
+            });
+        }
+        return { success: true };
+    } catch (error) {
+        console.error("Error toggling favorite:", error);
+        return { success: false };
+    }
 }
