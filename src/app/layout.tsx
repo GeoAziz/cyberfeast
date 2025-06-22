@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import AIConcierge from "@/components/ai-concierge";
+import { CartProvider } from "@/context/cart-context";
 
 export const metadata: Metadata = {
   title: "CyberFeast",
@@ -28,9 +29,11 @@ export default function RootLayout({
         />
       </head>
       <body className="font-body antialiased">
-        {children}
-        <AIConcierge />
-        <Toaster />
+        <CartProvider>
+          {children}
+          <AIConcierge />
+          <Toaster />
+        </CartProvider>
       </body>
     </html>
   );
