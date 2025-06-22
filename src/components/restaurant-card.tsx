@@ -64,7 +64,7 @@ export function RestaurantCard({ id, name, cuisine, rating, imageUrl, slug, "dat
 
   return (
     <Card className="group overflow-hidden transition-all duration-300 hover:border-accent hover:shadow-lg hover:shadow-accent/20 cursor-pointer">
-      <Link href={`/dashboard/restaurant/${slug}`}>
+      <Link href={`/dashboard/restaurant/${id}`}>
         <div className="aspect-[16/10] overflow-hidden relative">
           <Image
             src={imageUrl}
