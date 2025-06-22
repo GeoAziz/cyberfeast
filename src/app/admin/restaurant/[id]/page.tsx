@@ -16,11 +16,7 @@ async function getUserId() {
     }
 }
 
-interface ManageRestaurantPageProps {
-    params: { id: string };
-}
-
-export default async function ManageRestaurantPage({ params }: ManageRestaurantPageProps) {
+export default async function ManageRestaurantPage({ params }: { params: { id: string } }) {
     const restaurantId = params.id;
     const userId = await getUserId();
     if (!userId) {
