@@ -66,7 +66,7 @@ export default function AIConcierge() {
           isOpen ? "translate-x-96 opacity-0" : "translate-x-0 opacity-100"
         )}>
         <Button
-          isIconOnly
+          size="icon"
           onClick={() => setIsOpen(true)}
           className="rounded-full w-16 h-16 bg-primary text-primary-foreground shadow-lg shadow-primary/50 hover:bg-primary/90 animate-pulse"
           aria-label="Open AI Concierge"
