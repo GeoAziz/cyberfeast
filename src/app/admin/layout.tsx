@@ -1,4 +1,4 @@
-
+// Admin layout - ensures only admin users can access this section.
 import { redirect } from 'next/navigation';
 import { getAuth } from 'firebase-admin/auth';
 import { cookies } from 'next/headers';
