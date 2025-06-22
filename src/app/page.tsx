@@ -60,11 +60,11 @@ export default function LandingPage() {
       <main className="flex-grow">
         <section className="container mx-auto px-4 sm:px-6 lg:px-8 text-center py-20 md:py-32">
           <h1 className="font-headline text-5xl md:text-7xl lg:text-8xl font-bold tracking-tighter relative">
-            <span className="animate-text-reveal [animation-fill-mode:backwards] [animation-delay:0.2s]">
+            <span className="animate-text-reveal [animation-delay:0.2s]">
               Summon your feast
             </span>
             <br />
-            <span className="animate-text-reveal [animation-fill-mode:backwards] [animation-delay:0.7s]">
+            <span className="animate-text-reveal [animation-delay:0.7s]">
               from the{" "}
               <span className="text-primary relative">
                 future.
@@ -97,7 +97,7 @@ export default function LandingPage() {
                   <div
                     key={index}
                     className="flex-shrink-0 w-80 animate-slide-up"
-                    style={{ animationDelay: `${1.5 + index * 0.1}s`, animationFillMode: 'backwards' }}
+                    style={{ animationDelay: `${1.5 + index * 0.1}s` }}
                   >
                     <MealCard
                       name={meal.name}
