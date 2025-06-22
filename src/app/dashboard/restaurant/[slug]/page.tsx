@@ -1,5 +1,3 @@
-// This route has been consolidated into /dashboard/restaurant/[id]
-// to resolve a dynamic route conflict with Next.js.
-export default function DeprecatedRestaurantSlugPage() {
-  return null;
-}
+// This file is intentionally left blank to resolve a Next.js routing conflict.
+// The active route is now /dashboard/restaurant/[id]/page.tsx.
+// This file can be safely deleted.
