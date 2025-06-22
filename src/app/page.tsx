@@ -9,39 +9,44 @@ import { useAuth } from "@/context/auth-context";
 
 const trendingMeals = [
   {
+    id: "1",
     name: "Quantum Burger",
-    restaurant: "Galaxy Grill",
+    restaurantName: "Galaxy Grill",
     price: "14.99",
     imageUrl: "https://placehold.co/600x400.png",
-    imageHint: "glowing burger",
+    "data-ai-hint": "glowing burger",
   },
   {
+    id: "2",
     name: "Nebula Noodles",
-    restaurant: "Cosmic Kitchen",
+    restaurantName: "Cosmic Kitchen",
     price: "12.50",
     imageUrl: "https://placehold.co/600x400.png",
-    imageHint: "holographic noodles",
+    "data-ai-hint": "holographic noodles",
   },
   {
+    id: "3",
     name: "Stardust Sushi",
-    restaurant: "Starlight Sushi",
+    restaurantName: "Starlight Sushi",
     price: "19.99",
     imageUrl: "https://placehold.co/600x400.png",
-    imageHint: "sushi platter",
+    "data-ai-hint": "sushi platter",
   },
   {
+    id: "4",
     name: "Plasma Pizza",
-    restaurant: "Pizza Planet",
+    restaurantName: "Pizza Planet",
     price: "16.00",
     imageUrl: "https://placehold.co/600x400.png",
-    imageHint: "futuristic pizza",
+    "data-ai-hint": "futuristic pizza",
   },
   {
+    id: "5",
     name: "Zero-G Cheesecake",
-    restaurant: "The Sweet Singularity",
+    restaurantName: "The Sweet Singularity",
     price: "8.99",
     imageUrl: "https://placehold.co/600x400.png",
-    imageHint: "levitating cheesecake"
+    "data-ai-hint": "levitating cheesecake"
   },
 ];
 
@@ -54,7 +59,7 @@ export default function LandingPage() {
         <Logo />
         <div className="flex items-center gap-2">
           {user ? (
-            <Button asChild className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-[0_0_20px_theme(colors.primary)]">
+            <Button asChild className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/50">
               <Link href="/dashboard">Go to Dashboard</Link>
             </Button>
           ) : (
@@ -62,7 +67,7 @@ export default function LandingPage() {
               <Button variant="ghost" asChild>
                 <Link href="/login">Sign In</Link>
               </Button>
-              <Button asChild className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-[0_0_20px_theme(colors.primary)]">
+              <Button asChild className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/50">
                 <Link href="/signup">Get Started</Link>
               </Button>
             </>
@@ -90,7 +95,7 @@ export default function LandingPage() {
             trending restaurants, delivered at light speed.
           </p>
           <div className="mt-10 flex justify-center gap-4 animate-fade-in [animation-delay:1.5s]">
-            <Button size="lg" asChild className="bg-accent hover:bg-accent/90 text-accent-foreground shadow-[0_0_20px_theme(colors.accent)]">
+            <Button size="lg" asChild className="bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg shadow-accent/50">
               <Link href="/dashboard">
                 Explore Food <ArrowRight className="ml-2" />
               </Link>
@@ -108,16 +113,17 @@ export default function LandingPage() {
               <div className="flex overflow-x-auto space-x-8 pb-4 scrollbar-hide">
                 {trendingMeals.map((meal, index) => (
                   <div
-                    key={index}
+                    key={meal.id}
                     className="flex-shrink-0 w-80 animate-slide-up"
                     style={{ animationDelay: `${1.5 + index * 0.1}s` }}
                   >
                     <MealCard
+                      id={meal.id}
                       name={meal.name}
-                      restaurantName={meal.restaurant}
+                      restaurantName={meal.restaurantName}
                       price={meal.price}
                       imageUrl={meal.imageUrl}
-                      data-ai-hint={meal.imageHint}
+                      data-ai-hint={meal['data-ai-hint']}
                     />
                   </div>
                 ))}

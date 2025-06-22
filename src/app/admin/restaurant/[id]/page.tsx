@@ -3,7 +3,6 @@ import { getRestaurantById, getMenuForRestaurantById } from "@/services/restaura
 import { notFound, redirect } from "next/navigation";
 import { RestaurantForm } from "@/components/admin/restaurant-form";
 import { ManageMenu } from "@/components/admin/manage-menu";
-import { Separator } from "@/components/ui/separator";
 import { cookies } from "next/headers";
 import { getAuth } from "firebase-admin/auth";
 
@@ -18,7 +17,11 @@ async function getUserId() {
     }
 }
 
-export default async function ManageRestaurantPage({ params }: { params: { id: string } }) {
+interface ManageRestaurantPageProps {
+    params: { id: string };
+}
+
+export default async function ManageRestaurantPage({ params }: ManageRestaurantPageProps) {
     const restaurantId = params.id;
     const userId = await getUserId();
     if (!userId) {
