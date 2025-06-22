@@ -1,3 +1,5 @@
+'use client';
+
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -5,9 +7,25 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/context/auth-context";
 import { Pen } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export default function ProfilePage() {
+  const { user, userData, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/login');
+    }
+  }, [user, loading, router]);
+
+  if (loading || !user || !userData) {
+    return <div>Loading profile...</div>; // Or a skeleton loader
+  }
+
   return (
     <div className="space-y-8">
       <header>
@@ -20,13 +38,13 @@ export default function ProfilePage() {
             <Card>
                 <CardContent className="pt-6 flex flex-col items-center text-center">
                     <Avatar className="w-24 h-24 mb-4 border-4 border-primary">
-                        <AvatarImage src="https://placehold.co/100x100.png" />
-                        <AvatarFallback>U</AvatarFallback>
+                        <AvatarImage src={user.photoURL || `https://placehold.co/100x100.png`} />
+                        <AvatarFallback>{userData.displayName?.charAt(0) || 'U'}</AvatarFallback>
                     </Avatar>
-                    <h2 className="text-xl font-bold font-headline">User Name</h2>
-                    <p className="text-muted-foreground">user.email@cyber.com</p>
+                    <h2 className="text-xl font-bold font-headline">{userData.displayName}</h2>
+                    <p className="text-muted-foreground">{user.email}</p>
                     <div className="mt-4">
-                        <Badge variant="secondary">Loyalty Points: 1,337</Badge>
+                        <Badge variant="secondary">Loyalty Points: {userData.loyaltyPoints || 0}</Badge>
                     </div>
                     <Button variant="ghost" size="sm" className="mt-4 gap-2">
                         <Pen className="w-3 h-3"/> Change Avatar
@@ -44,11 +62,11 @@ export default function ProfilePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="username">Username</Label>
-                  <Input id="username" defaultValue="UserName" />
+                  <Input id="username" defaultValue={userData.displayName} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="email">Email Address</Label>
-                  <Input id="email" type="email" defaultValue="user.email@cyber.com" disabled />
+                  <Input id="email" type="email" defaultValue={user.email || ''} disabled />
                 </div>
               </div>
               

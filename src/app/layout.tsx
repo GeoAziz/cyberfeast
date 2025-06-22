@@ -3,6 +3,7 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import AIConcierge from "@/components/ai-concierge";
 import { CartProvider } from "@/context/cart-context";
+import { AuthProvider } from "@/context/auth-context";
 
 export const metadata: Metadata = {
   title: "CyberFeast",
@@ -29,11 +30,13 @@ export default function RootLayout({
         />
       </head>
       <body className="font-body antialiased">
-        <CartProvider>
-          {children}
-          <AIConcierge />
-          <Toaster />
-        </CartProvider>
+        <AuthProvider>
+          <CartProvider>
+            {children}
+            <AIConcierge />
+            <Toaster />
+          </CartProvider>
+        </AuthProvider>
       </body>
     </html>
   );

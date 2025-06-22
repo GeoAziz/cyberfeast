@@ -1,8 +1,11 @@
+'use client'; 
+
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { MealCard } from "@/components/meal-card";
 import { Logo } from "@/components/logo";
 import { ArrowRight, Sparkles } from "lucide-react";
+import { useAuth } from "@/context/auth-context";
 
 const trendingMeals = [
   {
@@ -43,17 +46,27 @@ const trendingMeals = [
 ];
 
 export default function LandingPage() {
+  const { user } = useAuth();
+
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
       <header className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
         <Logo />
         <div className="flex items-center gap-2">
-          <Button variant="ghost" asChild>
-            <Link href="/login">Sign In</Link>
-          </Button>
-          <Button asChild className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-[0_0_20px_theme(colors.primary)]">
-            <Link href="/dashboard">Get Started</Link>
-          </Button>
+          {user ? (
+            <Button asChild className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-[0_0_20px_theme(colors.primary)]">
+              <Link href="/dashboard">Go to Dashboard</Link>
+            </Button>
+          ) : (
+            <>
+              <Button variant="ghost" asChild>
+                <Link href="/login">Sign In</Link>
+              </Button>
+              <Button asChild className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-[0_0_20px_theme(colors.primary)]">
+                <Link href="/signup">Get Started</Link>
+              </Button>
+            </>
+          )}
         </div>
       </header>
 

@@ -2,16 +2,23 @@
 
 import Image from 'next/image';
 import { useCart } from '@/context/cart-context';
+import { useAuth } from '@/context/auth-context';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { Minus, Plus, Trash2, ShoppingCart as ShoppingCartIcon } from 'lucide-react';
+import { Minus, Plus, Trash2, ShoppingCart as ShoppingCartIcon, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { placeOrderAction } from '@/app/actions';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 export function ShoppingCart() {
   const { isCartOpen, toggleCart, items, dispatch, clearCart } = useCart();
+  const { user } = useAuth();
   const { toast } = useToast();
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
 
   const totalPrice = items.reduce((acc, item) => acc + item.price * item.quantity, 0);
 
@@ -23,14 +30,44 @@ export function ShoppingCart() {
     dispatch({ type: 'REMOVE_ITEM', payload: { id } });
   };
 
-  const handleCheckout = () => {
+  const handleCheckout = async () => {
+    if (!user) {
+        toast({
+            variant: 'destructive',
+            title: "Authentication Required",
+            description: "Please log in to place an order.",
+        });
+        toggleCart();
+        router.push('/login');
+        return;
+    }
     if (items.length === 0) return;
-    clearCart();
-    toggleCart(); 
-    toast({
-      title: "Order Placed!",
-      description: "Your feast is being summoned from the future. It will arrive shortly.",
-    });
+
+    setIsLoading(true);
+    try {
+        await placeOrderAction({
+            userId: user.uid,
+            items: items.map(item => ({...item, price: Number(item.price)})),
+            total: totalPrice,
+        });
+        clearCart();
+        toast({
+          title: "Order Placed!",
+          description: "Your feast is being summoned from the future. It will arrive shortly.",
+        });
+        router.push('/dashboard/orders');
+    } catch (error) {
+        toast({
+            variant: 'destructive',
+            title: "Order Failed",
+            description: "There was a problem placing your order. Please try again.",
+        });
+    } finally {
+        setIsLoading(false);
+        if (isCartOpen) {
+          toggleCart();
+        }
+    }
   }
 
   return (
@@ -54,7 +91,7 @@ export function ShoppingCart() {
                         </div>
                         <div className="flex-1">
                             <p className="font-semibold">{item.name}</p>
-                            <p className="text-primary font-bold">${item.price.toFixed(2)}</p>
+                            <p className="text-primary font-bold">${Number(item.price).toFixed(2)}</p>
                             <div className="mt-2 flex items-center gap-2 text-sm">
                                 <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)}>
                                     <Minus className="h-3 w-3" />
@@ -79,7 +116,8 @@ export function ShoppingCart() {
                         <span>Total:</span>
                         <span>${totalPrice.toFixed(2)}</span>
                     </div>
-                    <Button onClick={handleCheckout} size="lg" className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
+                    <Button onClick={handleCheckout} size="lg" className="w-full bg-accent text-accent-foreground hover:bg-accent/90" disabled={isLoading}>
+                       {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         Proceed to Checkout
                     </Button>
                 </div>
