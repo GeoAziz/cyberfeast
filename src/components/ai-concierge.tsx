@@ -1,19 +1,20 @@
 "use client";
 
 import { useState, useTransition, useRef, useEffect } from "react";
+import ReactMarkdown from 'react-markdown';
 import { Bot, Send, X, Loader, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { getMealRecommendationAction } from "@/app/actions";
+import { getConciergeResponseAction } from "@/app/actions";
 import { useToast } from "@/hooks/use-toast";
-import type { MealRecommendationOutput } from "@/ai/flows/meal-recommendation";
+import { useAuth } from "@/context/auth-context";
 
 type Message = {
   role: "user" | "assistant";
-  content: string | MealRecommendationOutput;
+  content: string;
 };
 
 export default function AIConcierge() {
@@ -22,6 +23,7 @@ export default function AIConcierge() {
   const [input, setInput] = useState("");
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
+  const { user } = useAuth();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -33,6 +35,19 @@ export default function AIConcierge() {
     }
   }, [messages]);
 
+  useEffect(() => {
+    // Add initial greeting message when chat opens and is empty
+    if (isOpen && messages.length === 0) {
+      setMessages([
+        {
+          role: "assistant",
+          content: "Welcome to CyberFeast! How can I help you today? You can ask me about restaurants, menus, or your recent orders.",
+        },
+      ]);
+    }
+  }, [isOpen, messages.length]);
+
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isPending) return;
@@ -42,15 +57,18 @@ export default function AIConcierge() {
     
     startTransition(async () => {
       try {
-        const response = await getMealRecommendationAction({ preferences: input });
-        const assistantMessage: Message = { role: "assistant", content: response };
+        const response = await getConciergeResponseAction({ 
+          query: input,
+          userId: user?.uid 
+        });
+        const assistantMessage: Message = { role: "assistant", content: response.response };
         setMessages((prev) => [...prev, assistantMessage]);
       } catch (error) {
-        console.error("AI recommendation failed:", error);
+        console.error("AI concierge failed:", error);
         toast({
           variant: "destructive",
           title: "Error",
-          description: "Failed to get AI recommendation. Please try again.",
+          description: "Failed to get AI response. Please try again.",
         });
         setMessages(prev => prev.slice(0, -1)); // Remove user message on failure
       }
@@ -109,20 +127,21 @@ export default function AIConcierge() {
                     )}
                     <div
                       className={cn(
-                        "rounded-lg p-3 max-w-xs",
+                        "rounded-lg p-3 max-w-xs prose prose-sm prose-invert",
                         message.role === "user"
                           ? "bg-primary text-primary-foreground"
                           : "bg-secondary"
                       )}
                     >
-                      {typeof message.content === "string" ? (
-                        <p className="text-sm">{message.content}</p>
-                      ) : (
-                        <div className="space-y-2">
-                           <p className="text-sm font-semibold">{message.content.mealName} from {message.content.restaurantName}</p>
-                           <p className="text-sm text-muted-foreground">{message.content.description}</p>
-                        </div>
-                      )}
+                        <ReactMarkdown
+                            components={{
+                                p: ({node, ...props}) => <p className="text-sm my-0" {...props} />,
+                                ul: ({node, ...props}) => <ul className="text-sm my-1 pl-4" {...props} />,
+                                li: ({node, ...props}) => <li className="text-sm my-0" {...props} />,
+                            }}
+                        >
+                            {message.content}
+                        </ReactMarkdown>
                     </div>
                   </div>
                 ))}
@@ -133,7 +152,7 @@ export default function AIConcierge() {
                         </div>
                         <div className="bg-secondary p-3 rounded-lg flex items-center space-x-2">
                             <Loader size={16} className="animate-spin" />
-                            <span className="text-sm text-muted-foreground">Finding recommendations...</span>
+                            <span className="text-sm text-muted-foreground">Thinking...</span>
                         </div>
                     </div>
                 )}
@@ -145,7 +164,7 @@ export default function AIConcierge() {
               <Input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="e.g., 'I want something spicy'"
+                placeholder="Ask me anything..."
                 disabled={isPending}
                 className="bg-input"
               />

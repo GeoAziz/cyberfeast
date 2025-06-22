@@ -1,17 +1,17 @@
 
 "use server";
 
-import { mealRecommendation, MealRecommendationInput, MealRecommendationOutput } from "@/ai/flows/meal-recommendation";
+import { concierge, ConciergeInput, ConciergeOutput } from "@/ai/flows/concierge-flow";
 import { getSearchSuggestions, SearchSuggestionsInput, SearchSuggestionsOutput } from "@/ai/flows/ai-powered-search-suggestions";
 import { adminDb } from "@/lib/firebase-server";
 import type { CartItem, Address } from "@/context/cart-context";
 import admin from 'firebase-admin';
 import { v4 as uuidv4 } from 'uuid';
 
-export async function getMealRecommendationAction(
-  input: MealRecommendationInput
-): Promise<MealRecommendationOutput> {
-  return await mealRecommendation(input);
+export async function getConciergeResponseAction(
+  input: ConciergeInput
+): Promise<ConciergeOutput> {
+  return await concierge(input);
 }
 
 export async function getSearchSuggestionsAction(
