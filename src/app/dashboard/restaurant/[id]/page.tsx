@@ -10,12 +10,12 @@ import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MealCard } from "@/components/meal-card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { notFound, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 import { toggleFavoriteAction } from "@/app/actions";
 import { useToast } from "@/hooks/use-toast";
 import { useEffect, useState, useTransition } from "react";
-import { doc, getDoc, collection, getDocs, query } from "firebase/firestore";
+import { doc, getDoc, collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
@@ -61,17 +61,19 @@ export default function RestaurantDetailsPage({ params }: { params: { id: string
   const [restaurantDetails, setRestaurantDetails] = useState<any>(null);
   const [menuItems, setMenuItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const getRestaurantData = async (id: string) => {
       if (!id) return;
       setLoading(true);
+      setError(null);
       try {
         const restaurantRef = doc(db, 'restaurants', id);
         const restaurantSnapshot = await getDoc(restaurantRef);
 
         if (!restaurantSnapshot.exists()) {
-          notFound();
+          setError("Restaurant not found.");
           return;
         }
 
@@ -85,7 +87,7 @@ export default function RestaurantDetailsPage({ params }: { params: { id: string
 
       } catch (err) {
         console.error(err);
-        notFound();
+        setError("Failed to load restaurant data.");
       } finally {
         setLoading(false);
       }
@@ -138,9 +140,19 @@ export default function RestaurantDetailsPage({ params }: { params: { id: string
       </div>
     </div>;
   }
+  
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center text-center py-20">
+        <h2 className="text-2xl font-bold text-destructive">Oops!</h2>
+        <p className="text-muted-foreground">{error}</p>
+        <Button onClick={() => router.push('/dashboard')} className="mt-4">Back to Dashboard</Button>
+      </div>
+    );
+  }
 
   if (!restaurantDetails) {
-    return notFound();
+    return null; // Should be covered by loading and error states
   }
   
   return (
