@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from "next/link";
@@ -46,17 +47,18 @@ export default function SignupPage() {
       const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
       const user = userCredential.user;
 
-      // Update Firebase Auth profile
       await updateProfile(user, { displayName: data.username });
 
-      // Create user document in Firestore
       await setDoc(doc(db, "users", user.uid), {
         uid: user.uid,
         displayName: data.username,
         email: data.email,
         createdAt: new Date(),
         loyaltyPoints: 0,
-        // Add other default fields here
+        photoURL: null,
+        addresses: [],
+        favoriteRestaurants: [],
+        favoriteMeals: [],
       });
 
       toast({ title: "Account Created", description: "Welcome to CyberFeast!" });

@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { createContext, useReducer, useContext, ReactNode } from 'react';
@@ -9,6 +10,12 @@ export interface CartItem {
   price: number;
   quantity: number;
   imageUrl: string;
+}
+
+export interface Address {
+  id: string;
+  name: string;
+  details: string;
 }
 
 interface CartState {
@@ -26,12 +33,12 @@ type CartAction =
 const cartReducer = (state: CartState, action: CartAction): CartState => {
   switch (action.type) {
     case 'ADD_ITEM': {
-      const existingItem = state.items.find(item => item.id === action.payload.name); 
+      const existingItem = state.items.find(item => item.id === action.payload.id); 
       if (existingItem) {
         return {
           ...state,
           items: state.items.map(item =>
-            item.id === action.payload.name
+            item.id === action.payload.id
               ? { ...item, quantity: item.quantity + 1 }
               : item
           ),
@@ -39,7 +46,7 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
       }
       return {
         ...state,
-        items: [...state.items, { ...action.payload, id: action.payload.name, quantity: 1 }],
+        items: [...state.items, { ...action.payload, quantity: 1 }],
       };
     }
     case 'REMOVE_ITEM':
@@ -100,8 +107,8 @@ export const useCart = () => {
   const { state, dispatch } = context;
   const { toast } = useToast();
 
-  const addItem = (item: Omit<CartItem, 'quantity' | 'id'> & {name: string}) => {
-    dispatch({ type: 'ADD_ITEM', payload: { ...item, id: item.name } });
+  const addItem = (item: Omit<CartItem, 'quantity'>) => {
+    dispatch({ type: 'ADD_ITEM', payload: item });
     toast({
         title: "Added to cart",
         description: `${item.name} has been added to your cart.`,

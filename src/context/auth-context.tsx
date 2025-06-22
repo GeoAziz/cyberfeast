@@ -3,18 +3,26 @@
 
 import React, { createContext, useContext, useEffect, useState, ReactNode, Dispatch, SetStateAction } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { doc, getDoc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { Logo } from '@/components/logo';
+
+export interface Address {
+  id: string;
+  name: string;
+  details: string;
+}
 
 interface UserData {
   uid: string;
   displayName: string;
   email: string;
+  photoURL: string | null;
   createdAt: any;
   loyaltyPoints: number;
   favoriteRestaurants?: string[];
   favoriteMeals?: string[];
+  addresses?: Address[];
 }
 
 interface AuthContextType {
@@ -50,7 +58,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           }
           setLoading(false);
         });
-        return () => unsubscribeFirestore(); // Cleanup Firestore listener
+        return () => unsubscribeFirestore();
       } else {
         setUser(null);
         setUserData(null);
@@ -58,7 +66,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     });
 
-    return () => unsubscribeAuth(); // Cleanup auth listener
+    return () => unsubscribeAuth();
   }, []);
 
   if (loading) {

@@ -4,8 +4,9 @@
 import { mealRecommendation, MealRecommendationInput, MealRecommendationOutput } from "@/ai/flows/meal-recommendation";
 import { getSearchSuggestions, SearchSuggestionsInput, SearchSuggestionsOutput } from "@/ai/flows/ai-powered-search-suggestions";
 import { adminDb } from "@/lib/firebase-server";
-import type { CartItem } from "@/context/cart-context";
+import type { CartItem, Address } from "@/context/cart-context";
 import admin from 'firebase-admin';
+import { v4 as uuidv4 } from 'uuid';
 
 export async function getMealRecommendationAction(
   input: MealRecommendationInput
@@ -38,7 +39,6 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<{ orderI
 
     const orderRef = await adminDb.collection('orders').add(orderData);
 
-    // Update user's loyalty points
     const userRef = adminDb.collection('users').doc(userId);
     const loyaltyPointsToAdd = Math.floor(total);
     await userRef.update({
@@ -66,12 +66,10 @@ export async function toggleFavoriteAction(input: ToggleFavoriteInput): Promise<
     
     try {
         if (isFavorited) {
-            // Remove from favorites
             await userRef.update({
                 [fieldToUpdate]: admin.firestore.FieldValue.arrayRemove(itemId)
             });
         } else {
-            // Add to favorites
             await userRef.update({
                 [fieldToUpdate]: admin.firestore.FieldValue.arrayUnion(itemId)
             });
@@ -79,6 +77,54 @@ export async function toggleFavoriteAction(input: ToggleFavoriteInput): Promise<
         return { success: true };
     } catch (error) {
         console.error("Error toggling favorite:", error);
+        return { success: false };
+    }
+}
+
+interface UpdateUserProfileInput {
+    userId: string;
+    displayName: string;
+    addresses: Address[];
+}
+
+export async function updateUserProfileAction(input: UpdateUserProfileInput): Promise<{ success: boolean }> {
+    const { userId, displayName, addresses } = input;
+
+    try {
+        const userRef = adminDb.collection('users').doc(userId);
+        
+        await admin.auth().updateUser(userId, { displayName });
+        
+        const processedAddresses = addresses.map(addr => ({
+            ...addr,
+            id: addr.id || uuidv4(),
+        }));
+        
+        await userRef.update({
+            displayName,
+            addresses: processedAddresses,
+        });
+
+        return { success: true };
+    } catch (error) {
+        console.error("Error updating user profile:", error);
+        return { success: false };
+    }
+}
+
+interface UpdateAvatarInput {
+    userId: string;
+    photoURL: string;
+}
+
+export async function updateAvatarAction(input: UpdateAvatarInput): Promise<{ success: boolean }> {
+    const { userId, photoURL } = input;
+    try {
+        await admin.auth().updateUser(userId, { photoURL });
+        await adminDb.collection('users').doc(userId).update({ photoURL });
+        return { success: true };
+    } catch (error) {
+        console.error("Error updating avatar:", error);
         return { success: false };
     }
 }
