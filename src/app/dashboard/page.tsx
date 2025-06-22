@@ -12,10 +12,10 @@ const forYouMeals = [
 ];
 
 const nearbyRestaurants = [
-  { name: "Cyber Sushi", cuisine: "Japanese", rating: 4.8, imageUrl: "https://placehold.co/600x400.png", imageHint: "sushi neon" },
-  { name: "Droid's Diner", cuisine: "American", rating: 4.5, imageUrl: "https://placehold.co/600x400.png", imageHint: "robot diner" },
-  { name: "The Grid Pizzeria", cuisine: "Italian", rating: 4.7, imageUrl: "https://placehold.co/600x400.png", imageHint: "tron pizza" },
-  { name: "BioDome Cafe", cuisine: "Healthy", rating: 4.9, imageUrl: "https://placehold.co/600x400.png", imageHint: "organic cafe" },
+  { name: "Cyber Sushi", slug: "cyber-sushi", cuisine: "Japanese", rating: 4.8, imageUrl: "https://placehold.co/600x400.png", imageHint: "sushi neon" },
+  { name: "Droid's Diner", slug: "droids-diner", cuisine: "American", rating: 4.5, imageUrl: "https://placehold.co/600x400.png", imageHint: "robot diner" },
+  { name: "The Grid Pizzeria", slug: "the-grid-pizzeria", cuisine: "Italian", rating: 4.7, imageUrl: "https://placehold.co/600x400.png", imageHint: "tron pizza" },
+  { name: "BioDome Cafe", slug: "biodome-cafe", cuisine: "Healthy", rating: 4.9, imageUrl: "https://placehold.co/600x400.png", imageHint: "organic cafe" },
 ];
 
 const categories = [
