@@ -1,3 +1,4 @@
+
 'use client';
 
 import Image from 'next/image';
@@ -9,12 +10,15 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Minus, Plus, Trash2, ShoppingCart as ShoppingCartIcon, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { placeOrderAction } from '@/app/actions';
+import { createCheckoutSessionAction } from '@/app/actions';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { loadStripe } from '@stripe/stripe-js';
+
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
 export function ShoppingCart() {
-  const { isCartOpen, toggleCart, items, dispatch, clearCart } = useCart();
+  const { isCartOpen, toggleCart, items, dispatch } = useCart();
   const { user } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
@@ -45,28 +49,36 @@ export function ShoppingCart() {
 
     setIsLoading(true);
     try {
-        await placeOrderAction({
+        const { sessionId } = await createCheckoutSessionAction({
+            items,
             userId: user.uid,
-            items: items.map(item => ({...item, price: Number(item.price)})),
-            total: totalPrice,
         });
-        clearCart();
-        toast({
-          title: "Order Placed!",
-          description: "Your feast is being summoned from the future. It will arrive shortly.",
-        });
-        router.push('/dashboard/orders');
+
+        const stripe = await stripePromise;
+        if (!stripe) {
+            throw new Error("Stripe.js failed to load.");
+        }
+
+        const { error } = await stripe.redirectToCheckout({ sessionId });
+        
+        if (error) {
+            console.error(error.message);
+            toast({
+                variant: 'destructive',
+                title: 'Checkout Error',
+                description: 'Failed to redirect to checkout. Please try again.',
+            });
+        }
+
     } catch (error) {
+        console.error("Failed to create checkout session:", error);
         toast({
             variant: 'destructive',
             title: "Order Failed",
-            description: "There was a problem placing your order. Please try again.",
+            description: "There was a problem preparing your order. Please try again.",
         });
     } finally {
         setIsLoading(false);
-        if (isCartOpen) {
-          toggleCart();
-        }
     }
   }
 
