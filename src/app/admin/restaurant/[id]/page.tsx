@@ -1,7 +1,6 @@
 // This component has been temporarily simplified to resolve a critical Vercel build error.
 // To restore full functionality, please ask to "re-implement the restaurant management page".
-export default function ManageRestaurantPage(props: { params: { id: string } }) {
-  const { params } = props;
+export default async function ManageRestaurantPage({ params }: { params: { id: string } }) {
   return (
     <div className="space-y-8">
        <header>
