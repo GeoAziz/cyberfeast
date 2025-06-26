@@ -1,79 +1,32 @@
-// src/app/dashboard/orders/page.tsx
-'use client';
 
-import { useEffect, useState } from 'react';
-import { useAuth } from '@/context/auth-context';
-import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
+import { getOrders, SerializableOrder } from '@/services/order-service';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { useRouter } from 'next/navigation';
-import { Skeleton } from '@/components/ui/skeleton';
+import { adminAuth } from '@/lib/firebase-server';
 
-interface Order {
-    id: string;
-    total: number;
-    status: string;
-    createdAt: {
-        toDate: () => Date;
-    };
-    items: { name: string, quantity: number, price: number }[];
+async function getUserId() {
+  const sessionCookie = cookies().get('__session')?.value;
+  if (!sessionCookie) return null;
+  try {
+    const decodedIdToken = await adminAuth.verifySessionCookie(sessionCookie, true);
+    return decodedIdToken.uid;
+  } catch (error) {
+    // Session cookie is invalid or expired
+    return null;
+  }
 }
 
-export default function OrdersPage() {
-    const { user, loading: authLoading } = useAuth();
-    const [orders, setOrders] = useState<Order[]>([]);
-    const [loading, setLoading] = useState(true);
-    const router = useRouter();
-
-    useEffect(() => {
-        if (!authLoading && !user) {
-            router.push('/login');
-            return;
-        }
-
-        if (user) {
-            const fetchOrders = async () => {
-                try {
-                    const q = query(
-                        collection(db, 'orders'), 
-                        where('userId', '==', user.uid),
-                        orderBy('createdAt', 'desc')
-                    );
-                    const querySnapshot = await getDocs(q);
-                    const userOrders = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Order[];
-                    setOrders(userOrders);
-                } catch (error) {
-                    console.error("Error fetching orders: ", error);
-                } finally {
-                    setLoading(false);
-                }
-            };
-            fetchOrders();
-        }
-    }, [user, authLoading, router]);
-
-    if (authLoading || loading) {
-        return (
-            <div className="space-y-4">
-                <Skeleton className="h-8 w-1/4" />
-                <Skeleton className="h-4 w-1/2" />
-                <Card>
-                    <CardHeader>
-                        <Skeleton className="h-6 w-1/3" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-2">
-                           <Skeleton className="h-10 w-full" />
-                           <Skeleton className="h-10 w-full" />
-                           <Skeleton className="h-10 w-full" />
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
-        )
+export default async function OrdersPage() {
+    const userId = await getUserId();
+    
+    if (!userId) {
+        redirect('/login');
     }
+    
+    const orders: SerializableOrder[] = await getOrders(userId);
 
     return (
         <div className="space-y-8">
@@ -100,16 +53,24 @@ export default function OrdersPage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {orders.map((order) => (
-                                <TableRow key={order.id}>
-                                    <TableCell className="font-medium truncate max-w-[100px]">{order.id}</TableCell>
-                                    <TableCell>{new Date(order.createdAt.toDate()).toLocaleDateString()}</TableCell>
-                                    <TableCell>
-                                        <Badge variant={order.status === 'pending' ? 'secondary' : 'default'}>{order.status}</Badge>
+                            {orders.length > 0 ? (
+                                orders.map((order) => (
+                                    <TableRow key={order.id}>
+                                        <TableCell className="font-medium truncate max-w-[100px]">{order.id}</TableCell>
+                                        <TableCell>{new Date(order.createdAt).toLocaleDateString()}</TableCell>
+                                        <TableCell>
+                                            <Badge variant={order.status === 'paid' ? 'default' : 'secondary'}>{order.status}</Badge>
+                                        </TableCell>
+                                        <TableCell className="text-right">${order.total.toFixed(2)}</TableCell>
+                                    </TableRow>
+                                ))
+                            ) : (
+                                <TableRow>
+                                    <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
+                                        You haven't placed any orders yet.
                                     </TableCell>
-                                    <TableCell className="text-right">${order.total.toFixed(2)}</TableCell>
                                 </TableRow>
-                            ))}
+                            )}
                         </TableBody>
                     </Table>
                 </CardContent>

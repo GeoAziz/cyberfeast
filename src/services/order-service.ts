@@ -5,16 +5,17 @@ import { adminDb } from "@/lib/firebase-server";
 import type { CartItem } from "@/context/cart-context";
 import admin from 'firebase-admin';
 
-export interface Order {
+// This is the type returned by the service function, safe for server components
+export interface SerializableOrder {
     id: string;
     userId: string;
     total: number;
     status: string;
-    createdAt: any;
+    createdAt: string; // ISO string
     items: CartItem[];
 }
 
-export async function getOrders(userId: string): Promise<Order[]> {
+export async function getOrders(userId: string): Promise<SerializableOrder[]> {
     const ordersQuery = adminDb.collection('orders')
         .where('userId', '==', userId)
         .orderBy('createdAt', 'desc')
@@ -30,10 +31,13 @@ export async function getOrders(userId: string): Promise<Order[]> {
         const data = doc.data();
         return {
             id: doc.id,
-            ...data,
+            userId: data.userId,
+            total: data.total,
+            status: data.status,
+            items: data.items,
             // Convert Firestore timestamp to a serializable format (ISO string)
             createdAt: data.createdAt.toDate().toISOString(),
-        } as Order;
+        } as SerializableOrder;
     });
 }
 
